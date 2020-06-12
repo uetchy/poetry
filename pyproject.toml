@@ -24,7 +24,7 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "~2.7 || ^3.5"
 
-poetry-core = "^1.0.0a8"
+poetry-core = { git = "https://github.com/python-poetry/poetry-core.git", branch = "make-factory-more-pluggable" }
 cleo = "^0.8.1"
 clikit = "^0.6.2"
 crashtest = { version = "^0.3.0", python = "^3.6" }
@@ -57,6 +57,7 @@ keyring = [
 # Use subprocess32 for Python 2.7
 subprocess32 = { version = "^3.5", python = "~2.7" }
 importlib-metadata = {version = "^1.6.0", python = "<3.8"}
+entrypoints = "^0.3"
 
 [tool.poetry.dev-dependencies]
 pytest = [

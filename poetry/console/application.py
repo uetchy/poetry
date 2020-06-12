@@ -1,4 +1,6 @@
 from cleo import Application as BaseApplication
+from clikit.api.args.raw_args import RawArgs
+from clikit.api.resolver.resolved_command import ResolvedCommand
 
 from poetry.__version__ import __version__
 
@@ -34,6 +36,8 @@ class Application(BaseApplication):
         )
 
         self._poetry = None
+        self._disable_plugins = False
+        self._plugins_loaded = False
 
         for command in self.get_default_commands():
             self.add(command)
@@ -52,6 +56,12 @@ class Application(BaseApplication):
 
     def reset_poetry(self):  # type: () -> None
         self._poetry = None
+
+    def resolve_command(self, args):  # type: (RawArgs) -> ResolvedCommand
+        # We hook into resolve_command() to load plugins.
+        self._load_plugins(args)
+
+        return super(Application, self).resolve_command(args)
 
     def get_default_commands(self):  # type: () -> list
         commands = [
@@ -88,6 +98,23 @@ class Application(BaseApplication):
         commands += [SelfCommand()]
 
         return commands
+
+    def _load_plugins(self, args):  # type: (RawArgs) -> None
+        if self._plugins_loaded:
+            return
+
+        from poetry.plugins.plugin_manager import PluginManager
+
+        self._disable_plugins = (
+            args.has_token("--no-plugins") or args.tokens and args.tokens[0] == "new"
+        )
+
+        if not self._disable_plugins:
+            plugin_manager = PluginManager("application.plugin")
+            plugin_manager.load_plugins()
+            plugin_manager.activate(self)
+
+        self._plugins_loaded = True
 
 
 if __name__ == "__main__":
