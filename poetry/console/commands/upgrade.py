@@ -39,42 +39,25 @@ class UpgradeCommand(EnvCommand, InitCommand):
         current_deps = self.poetry.package.requires
         current_dev_deps = self.poetry.package.dev_requires
 
-        latest_packages = [self.find_latest(dep) for dep in current_deps]
-        latest_dev_packages = [self.find_latest(dep) for dep in current_dev_deps]
-        upgradable = filter(
-            lambda s: s[1].version > s[0].constraint.max,
-            zip(current_deps, latest_packages),
-        )
-        upgradable_dev = filter(
-            lambda s: s[1].version > s[0].constraint.max,
-            zip(current_dev_deps, latest_dev_packages),
-        )
+        upgradable = self.find_upgradable(current_deps)
+        upgradable_dev = self.find_upgradable(current_dev_deps)
 
-        choices = [Separator("dependencies")]
-        choices += [
-            {
-                "name": src.pretty_name
-                + " "
-                + src.pretty_constraint
-                + " ❯ "
-                + target.pretty_version,
-                "value": [target, "dependencies"],
-            }
-            for src, target in upgradable
-        ]
+        def makeChoices(pairs, section):
+            return [Separator(section)] + [
+                {
+                    "name": src.pretty_name
+                    + " "
+                    + src.pretty_constraint
+                    + " ❯ "
+                    + target.pretty_version,
+                    "value": [target, section],
+                }
+                for src, target in upgradable
+            ]
 
-        choices.append(Separator("devDependencies"))
-        choices += [
-            {
-                "name": src.pretty_name
-                + " "
-                + src.pretty_constraint
-                + " ❯ "
-                + target.pretty_version,
-                "value": [target, "devDependencies"],
-            }
-            for src, target in upgradable_dev
-        ]
+        choices = makeChoices(upgradable, "dependencies") + makeChoices(
+            upgradable_dev, "devDependencies"
+        )
 
         answers = prompt(
             [
@@ -95,6 +78,10 @@ class UpgradeCommand(EnvCommand, InitCommand):
         self.poetry.file.write(content)
 
         # TODO: print nice message
+
+    def find_upgradable(self, deps):
+        pkgs = [self.find_latest(dep) for dep in deps]
+        return filter(lambda s: s[1].version > s[0].constraint.max, zip(deps, pkgs),)
 
     def find_latest(self, dep):
         provider = Provider(self.poetry.package, self.poetry.pool, NullIO())
