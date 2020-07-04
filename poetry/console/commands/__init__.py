@@ -15,4 +15,5 @@ from .search import SearchCommand
 from .shell import ShellCommand
 from .show import ShowCommand
 from .update import UpdateCommand
+from .upgrade import UpgradeCommand
 from .version import VersionCommand

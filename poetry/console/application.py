@@ -25,6 +25,7 @@ from .commands.self.self import SelfCommand
 from .commands.shell import ShellCommand
 from .commands.show import ShowCommand
 from .commands.update import UpdateCommand
+from .commands.upgrade import UpgradeCommand
 from .commands.version import VersionCommand
 from .config import ApplicationConfig
 
@@ -92,6 +93,7 @@ class Application(BaseApplication):
             ShellCommand(),
             ShowCommand(),
             UpdateCommand(),
+            UpgradeCommand(),
             VersionCommand(),
         ]
 
