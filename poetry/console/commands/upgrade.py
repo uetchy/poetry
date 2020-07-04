@@ -30,12 +30,6 @@ class UpgradeCommand(EnvCommand, InitCommand):
     def handle(self):
         content = self.poetry.file.read()
 
-        # TODO: handle this kind of constraint
-        # keyring = [
-        #     { version = "^18.0.1", python = "~2.7 || ~3.4" },
-        #     { version = "^20.0.1", python = "^3.5" }
-        # ]
-        # ? maybe these complex constraint should not be selected
         current_deps = self.poetry.package.requires
         current_dev_deps = self.poetry.package.dev_requires
 
@@ -49,8 +43,16 @@ class UpgradeCommand(EnvCommand, InitCommand):
                     + " "
                     + src.pretty_constraint
                     + " ❯ "
-                    + target.pretty_version,
-                    "value": [target, section],
+                    + target.pretty_version
+                    + " ("
+                    + src.python_versions
+                    + ")",
+                    "value": [
+                        src.name,
+                        target.version.text,
+                        src.python_versions,
+                        section,
+                    ],
                 }
                 for src, target in upgradable
             ]
@@ -70,9 +72,26 @@ class UpgradeCommand(EnvCommand, InitCommand):
             ]
         )
 
-        for pkg, scope in answers["pkgsToUpgrade"]:
+        if not answers or len(answers["pkgsToUpgrade"]) == 0:
+            return
+
+        poetry = content["tool"]["poetry"]
+        for package_name, new_version, python_version, scope in answers[
+            "pkgsToUpgrade"
+        ]:
             # ? always caret version. or should be tilde?
-            content["tool"]["poetry"][scope][pkg.name] = "^" + pkg.version.text
+            scoped = poetry[scope]
+            for k in scoped:
+                if k == "python" or k != package_name:
+                    continue
+                val = scoped[k]
+                if isinstance(val, str):
+                    scoped[k] = "^" + new_version
+                elif isinstance(val, list):
+                    for item in val:
+                        if "python" in item and item["python"] != python_version:
+                            continue
+                        item["version"] = "^" + new_version
 
         # Write back
         self.poetry.file.write(content)
