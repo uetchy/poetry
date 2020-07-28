@@ -76,27 +76,35 @@ class UpgradeCommand(EnvCommand, InitCommand):
             return
 
         poetry = content["tool"]["poetry"]
+
         for package_name, new_version, python_version, scope in answers[
             "pkgsToUpgrade"
         ]:
             # ? always caret version. or should be tilde?
+            constraint = "^" + new_version
             scoped = poetry[scope]
             for k in scoped:
                 if k == "python" or k != package_name:
                     continue
                 val = scoped[k]
                 if isinstance(val, str):
-                    scoped[k] = "^" + new_version
+                    scoped[k] = constraint
+                elif isinstance(val, dict):
+                    if "python" in val and val["python"] != python_version:
+                        continue
+                    val["version"] = constraint
                 elif isinstance(val, list):
                     for item in val:
                         if "python" in item and item["python"] != python_version:
                             continue
-                        item["version"] = "^" + new_version
+                        item["version"] = constraint
 
         # Write back
         self.poetry.file.write(content)
 
-        # TODO: print nice message
+        self.line(
+            "<c1>pyproject.toml</c1> has been changed. Run <m1>poetry update</m1> to update poetry.lock file."
+        )
 
     def find_upgradable(self, deps):
         pkgs = [self.find_latest(dep) for dep in deps]
